@@ -1,7 +1,10 @@
 # Makefile for BeagleBone Black automation on Fedora host
 
-IMAGE_URL = https://debian.beagleboard.org/images/bb-debian-10.3-console-armhf-2020-04-06.img.xz
-IMAGE_FILE = bb-debian.img.xz
+DOWNLOAD_DIR = ./downloads
+IMAGE_URL = https://files.beagle.cc/file/beagleboard-public-2021/images/am335x-debian-12.11-base-v6.15-armhf-2025-08-08-4gb.img.xz
+IMAGE_CHECKSUM_URL = https://files.beagle.cc/file/beagleboard-public-2021/images/am335x-debian-12.11-base-v6.15-armhf-2025-08-08-4gb.img.xz.sha256sum
+IMAGE_FILE = $(DOWNLOAD_DIR)/bb-debian.img.xz
+IMAGE_CHECKSUM_FILE = $(DOWNLOAD_DIR)/bb-debian.img.xz.sha256sum
 TARGET_IMG_DIR = ./bb-image
 MOUNT_DIR = ./mnt
 SYSTEMD_DIR = ./systemd
@@ -11,7 +14,17 @@ all: download unpack mount broker systemd unmount
 
 # 1. Download Debian ARM image
 download:
-	wget -O $(IMAGE_FILE) $(IMAGE_URL)
+	mkdir -p $(DOWNLOAD_DIR)
+	@if [ ! -f $(IMAGE_FILE) ]; then \
+		wget -O $(IMAGE_FILE) $(IMAGE_URL); \
+	else \
+		echo "$(IMAGE_FILE) already exists, skipping download."; \
+	fi
+	@if [ ! -f $(IMAGE_CHECKSUM_FILE) ]; then \
+		wget -O $(IMAGE_CHECKSUM_FILE) $(IMAGE_CHECKSUM_URL); \
+	else \
+		echo "$(IMAGE_CHECKSUM_FILE) already exists, skipping download."; \
+	fi
 
 # 2. Extract the image
 unpack:
