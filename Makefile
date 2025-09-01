@@ -61,3 +61,5 @@ systemd:
 unmount:
 	sudo umount $(MOUNT_DIR)
 
+chroot-interactive:
+	sudo chroot $(MOUNT_DIR) $(QEMU_BIN) /bin/bash
