@@ -8,9 +8,8 @@ IMAGE_CHECKSUM_FILE = $(DOWNLOAD_DIR)/bb-debian.img.xz.sha256sum
 TARGET_IMG_DIR = ./bb-image
 MOUNT_DIR = ./mnt
 SYSTEMD_DIR = ./systemd
-QEMU_BIN = qemu-arm-static
-
-all: download unpack mount broker systemd unmount
+# dnf install qemu-user-static-arm (on Fedora)
+QEMU_BIN = $(shell which qemu-arm-static)
 
 # 1. Download Debian ARM image
 download:
@@ -40,9 +39,18 @@ mount:
 	# Copy QEMU-arm for chroot
 	sudo cp $(QEMU_BIN) $(MOUNT_DIR)/usr/bin/
 
+# 4. Put a working resolv.conf inside the chroot
+setup-resolv:
+	# Remove the symlink if it exists
+	sudo rm -f $(MOUNT_DIR)/etc/resolv.conf
+	# Write a static DNS file with the desired nameservers
+	@echo "nameserver 8.8.8.8" | sudo tee $(MOUNT_DIR)/etc/resolv.conf > /dev/null
+	@echo "nameserver 1.1.1.1" | sudo tee -a $(MOUNT_DIR)/etc/resolv.conf > /dev/null
+
+
 # 5. Install MQTT broker (Mosquitto) via chroot
 broker:
-	sudo chroot $(MOUNT_DIR) $[QEMU_BIN] /bin/bash -c "apt update && apt install -y mosquitto"
+	sudo chroot $(MOUNT_DIR) $(QEMU_BIN) /bin/bash -c "apt update && apt install -y mosquitto"
 
 # 6. Copy systemd files and enable services
 systemd:
