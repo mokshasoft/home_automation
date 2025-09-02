@@ -6,6 +6,7 @@ IMAGE_CHECKSUM_URL = https://files.beagle.cc/file/beagleboard-public-2021/images
 IMAGE_FILE = $(DOWNLOAD_DIR)/bb-debian.img.xz
 IMAGE_CHECKSUM_FILE = $(DOWNLOAD_DIR)/bb-debian.img.xz.sha256sum
 TARGET_IMG_DIR = ./bb-image
+TARGET_IMG = $(TARGET_IMG_DIR)/bb-debian.img
 MOUNT_DIR = ./mnt
 SYSTEMD_DIR = ./systemd
 # dnf install qemu-user-static-arm (on Fedora)
@@ -28,14 +29,14 @@ download:
 # 2. Extract the image
 unpack:
 	mkdir -p $(TARGET_IMG_DIR)
-	unxz -c $(IMAGE_FILE) > $(TARGET_IMG_DIR)/bb-debian.img
+	unxz -c $(IMAGE_FILE) > $(TARGET_IMG)
 
 # 3. Mount root filesystem with loopback
 mount:
 	sudo mkdir -p $(MOUNT_DIR)
 	# Automatically find rootfs offset
-	OFFSET=$$(fdisk -l $(TARGET_IMG_DIR)/bb-debian.img | grep Linux | awk 'NR==2 {print $$2 * 512}'); \
-	sudo mount -o loop,offset=$$OFFSET $(TARGET_IMG_DIR)/bb-debian.img $(MOUNT_DIR)
+	OFFSET=$$(fdisk -l $(TARGET_IMG) | grep Linux | awk 'NR==2 {print $$2 * 512}'); \
+	sudo mount -o loop,offset=$$OFFSET $(TARGET_IMG) $(MOUNT_DIR)
 	# Copy QEMU-arm for chroot
 	sudo cp $(QEMU_BIN) $(MOUNT_DIR)/usr/bin/
 
