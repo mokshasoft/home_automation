@@ -11,6 +11,7 @@ MOUNT_DIR = ./mnt
 SYSTEMD_DIR = ./systemd
 # dnf install qemu-user-static-arm (on Fedora)
 QEMU_BIN = $(shell which qemu-arm-static)
+QEMU = qemu-system-arm
 
 # 1. Download Debian ARM image
 download:
@@ -64,3 +65,14 @@ unmount:
 
 chroot-interactive:
 	sudo chroot $(MOUNT_DIR) $(QEMU_BIN) /bin/bash
+
+run-qemu:
+	$(QEMU) \
+		-M versatilepb \
+		-cpu cortex-a8 \
+		-m 256M \
+		-kernel zImage-versatilepb \
+		-append "root=/dev/sda2 rw console=ttyAMA0" \
+		-hda ./bb-image/bb-debian.img \
+		-nographic \
+		-net nic -net user,hostfwd=tcp::2222-:22
