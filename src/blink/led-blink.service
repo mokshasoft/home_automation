@@ -1,0 +1,13 @@
+[Unit]
+Description=Blink BeagleBone Black USR0 LED
+After=multi-user.target
+
+[Service]
+ExecStart=/usr/bin/python3 /opt/bbb/led_blink.py
+Restart=always
+User=root
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

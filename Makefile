@@ -59,6 +59,16 @@ systemd:
 	sudo cp $(SYSTEMD_DIR)/* $(MOUNT_DIR)/etc/systemd/system/
 	sudo chroot $(MOUNT_DIR) $(QEMU_BIN) /bin/bash -c "systemctl enable mosquitto.service"
 
+# 7. Install LED blinker service
+led-service:
+	@echo "Copying LED blinker script and service into image..."
+	sudo mkdir -p $(MOUNT_DIR)/opt/bbb
+	sudo cp src/blink/led_blink.py $(MOUNT_DIR)/opt/bbb/
+	sudo chmod +x $(MOUNT_DIR)/opt/bbb/led_blink.py
+	sudo cp src/blink/led-blink.service $(MOUNT_DIR)/etc/systemd/system/
+	# Enable the service inside chroot
+	sudo chroot $(MOUNT_DIR) $(QEMU_BIN) /bin/bash -c "systemctl enable led-blink.service"
+
 # 7. Unmount filesystem
 unmount:
 	sudo umount $(MOUNT_DIR)
