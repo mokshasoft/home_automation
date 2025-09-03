@@ -13,6 +13,9 @@ SYSTEMD_DIR = ./systemd
 QEMU_BIN = $(shell which qemu-arm-static)
 QEMU = qemu-system-arm
 
+create-bbb-image: download unpack mount setup-resolv broker led-service unmount
+	@echo "Wrote BeagleBone Black ISO to $(TARGET_IMG)"
+
 # 1. Download Debian ARM image
 download:
 	mkdir -p $(DOWNLOAD_DIR)
