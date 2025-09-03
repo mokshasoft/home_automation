@@ -53,13 +53,10 @@ setup-resolv:
 # 5. Install MQTT broker (Mosquitto) via chroot
 broker:
 	sudo chroot $(MOUNT_DIR) $(QEMU_BIN) /bin/bash -c "apt update && apt install -y mosquitto"
-
-# 6. Copy systemd files and enable services
-systemd:
-	sudo cp $(SYSTEMD_DIR)/* $(MOUNT_DIR)/etc/systemd/system/
+	# Enable the service inside chroot
 	sudo chroot $(MOUNT_DIR) $(QEMU_BIN) /bin/bash -c "systemctl enable mosquitto.service"
 
-# 7. Install LED blinker service
+# 6. Install LED blinker service
 led-service:
 	@echo "Copying LED blinker script and service into image..."
 	sudo mkdir -p $(MOUNT_DIR)/opt/bbb
