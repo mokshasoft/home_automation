@@ -1,0 +1,12 @@
+[Unit]
+Description=Growatt Battery → MQTT Bridge
+After=network.target
+
+[Service]
+EnvironmentFile=/etc/default/growatt-mqtt
+ExecStart=/usr/bin/python3 /usr/local/bin/growatt_mqtt.py
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target
