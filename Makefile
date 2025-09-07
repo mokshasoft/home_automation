@@ -76,6 +76,7 @@ growatt-mqtt:
 	sudo cp src/inverter/growatt_mqtt.py $(MOUNT_DIR)/opt/bbb/
 	sudo chmod +x $(MOUNT_DIR)/opt/bbb/growatt_mqtt.py
 	sudo cp src/inverter/growatt-mqtt.service $(MOUNT_DIR)/etc/systemd/system/
+	# How to install .env file and how to configure it in the service
 	# Enable the service inside chroot
 	sudo chroot $(MOUNT_DIR) $(QEMU_BIN) /bin/bash -c "systemctl enable growatt-mqtt.service"
 
