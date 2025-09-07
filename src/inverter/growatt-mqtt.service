@@ -4,9 +4,11 @@ After=network.target
 
 [Service]
 EnvironmentFile=/etc/default/growatt-mqtt
-ExecStart=/usr/bin/python3 /usr/local/bin/growatt_mqtt.py
+ExecStart=/usr/bin/python3 /opt/bbb/growatt_mqtt.py
 Restart=always
 User=root
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
