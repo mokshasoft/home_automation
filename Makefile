@@ -69,6 +69,16 @@ led-service:
 	# Enable the service inside chroot
 	sudo chroot $(MOUNT_DIR) $(QEMU_BIN) /bin/bash -c "systemctl enable led-blink.service"
 
+# Install Growatt MQTT
+growatt-mqtt:
+	@echo "Copying Growatt MQTT script and service into image..."
+	sudo mkdir -p $(MOUNT_DIR)/opt/bbb
+	sudo cp src/inverter/growatt_mqtt.py $(MOUNT_DIR)/opt/bbb/
+	sudo chmod +x $(MOUNT_DIR)/opt/bbb/growatt_mqtt.py
+	sudo cp src/inverter/growatt-mqtt.service $(MOUNT_DIR)/etc/systemd/system/
+	# Enable the service inside chroot
+	sudo chroot $(MOUNT_DIR) $(QEMU_BIN) /bin/bash -c "systemctl enable growatt-mqtt.service"
+
 # 7. Unmount filesystem
 unmount:
 	sudo umount $(MOUNT_DIR)
