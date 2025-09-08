@@ -6,6 +6,7 @@ After=network.target
 EnvironmentFile=/etc/default/growatt-mqtt
 ExecStart=/usr/bin/python3 /opt/bbb/growatt_mqtt.py
 Restart=always
+RestartSec=5
 User=root
 StandardOutput=journal
 StandardError=journal

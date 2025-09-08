@@ -13,7 +13,7 @@ SYSTEMD_DIR = ./systemd
 QEMU_BIN = $(shell which qemu-arm-static)
 QEMU = qemu-system-arm
 
-create-bbb-image: download unpack mount setup-resolv broker led-service unmount
+create-bbb-image: download unpack mount setup-resolv broker led-service growatt-mqtt unmount
 	@echo "Wrote BeagleBone Black ISO to $(TARGET_IMG)"
 
 # 1. Download Debian ARM image
@@ -73,10 +73,11 @@ led-service:
 growatt-mqtt:
 	@echo "Copying Growatt MQTT script and service into image..."
 	sudo mkdir -p $(MOUNT_DIR)/opt/bbb
+	sudo mkdir -p $(MOUNT_DIR)/etc/default
 	sudo cp src/inverter/growatt_mqtt.py $(MOUNT_DIR)/opt/bbb/
 	sudo chmod +x $(MOUNT_DIR)/opt/bbb/growatt_mqtt.py
 	sudo cp src/inverter/growatt-mqtt.service $(MOUNT_DIR)/etc/systemd/system/
-	# How to install .env file and how to configure it in the service
+	sudo cp src/inverter/.env $(MOUNT_DIR)/etc/default/growatt-mqtt
 	# Enable the service inside chroot
 	sudo chroot $(MOUNT_DIR) $(QEMU_BIN) /bin/bash -c "systemctl enable growatt-mqtt.service"
 
