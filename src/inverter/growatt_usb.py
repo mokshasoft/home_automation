@@ -26,10 +26,19 @@ def read_register(register, count=1):
 
 def loop_registers(low, high):
     for register in range(low, high):
-        raw_value = read_register(register)[0]
-        if raw_value is not None:
-            print(f"Register {register} raw value: {raw_value} | {hex(raw_value)}", flush=True)
-
+        try:
+            # Attempt to read the register
+            raw_value = read_register(register)[0]
+            if raw_value is not None:
+                # Print the result, flush the output immediately
+                print(f"Register {register} raw value: {raw_value} | {hex(raw_value)}", flush=True)
+        except ModbusIOException as e:
+            # Catch Modbus-specific errors like no response after retries
+            print(f"Modbus Error for Register {register}: {e}", flush=True)
+        except Exception as e:
+            # Catch any other general exceptions
+            print(f"Error reading Register {register}: {e}", flush=True)
+            
 def register_repl():
     print("Connected to inverter. You can now enter register addresses to read (or type 'exit' to quit).")
     
