@@ -24,6 +24,39 @@ def read_register(register, count=1):
         print(f"Error reading register {register}")
         return None
 
+def loop_registers(low, high):
+    for register in range(low, high):
+        raw_value = read_register(register)[0]
+        if raw_value is not None:
+            print(f"Register {register} raw value: {raw_value} | {hex(raw_value)}", flush=True)
+
+def register_repl():
+    print("Connected to inverter. You can now enter register addresses to read (or type 'exit' to quit).")
+    
+    while True:
+        try:
+            # Ask user for register address
+            register_input = input("Enter Modbus register address (hex or dec) or 'exit' to quit: ")
+            
+            if register_input.lower() == 'exit':
+                print("Exiting REPL.")
+                break
+
+            # Convert register input to integer (handles both hex and decimal)
+            if register_input.startswith('0x'):
+                register = int(register_input, 16)
+            else:
+                register = int(register_input)
+
+            # Read the register value(s)
+            result = read_register(register)
+            
+            if result:
+                print(f"Register {hex(register)}: {result[0]} (Decimal) | {hex(result[0])} (Hex)")
+
+        except ValueError:
+            print("Invalid input. Please enter a valid register address (hex or decimal).")
+    
 if __name__ == '__main__':
     if not client.connect():
         print("Failed to connect to inverter.")
@@ -43,5 +76,7 @@ if __name__ == '__main__':
         print(f"Battery Current: {battery_current} A")
         print(f"State of Charge: {soc} %")
 
+        # register_repl()
+        loop_registers(2000, 3000)
     finally:
         client.close()
