@@ -1,5 +1,5 @@
 Read when charge was around 93%
-
+grep -E " 9[23]" register-values.txt
 
 Register 0 raw value: 0 | 0x0
 Register 1 raw value: 1 | 0x1
