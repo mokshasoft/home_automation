@@ -17,7 +17,7 @@ client = ModbusClient(
 UNIT_ID = 1
 
 def read_register(register, count=1):
-    result = client.read_holding_registers(register, count, unit=UNIT_ID)
+    result = client.read_holding_registers(register, count=count, device_id=UNIT_ID)
     if not result.isError():
         return result.registers
     else:
