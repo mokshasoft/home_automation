@@ -20,3 +20,7 @@ fix:
 .PHONY: run
 run:
 	uv run python growatt_usb.py
+
+.PHONY: read
+read:
+	uv run python ex2.py
