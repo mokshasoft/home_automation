@@ -50,7 +50,9 @@ while True:
         value_input_voltage = row[1]   # raw value (tenths of a volt)
         value_charge        = row[17]  # raw value (hundredths of a volt)
         value_percent       = row[18]  # percent
+        watt_out = row[70]
 
+        print(f"output watt? : {watt_out/10:.1f} W")
         print(f"input voltage : {value_input_voltage/10:.1f} V")
         print(f"charge voltage: {value_charge/100:.2f} V")
         print(f"percent charge: {value_percent}%")
