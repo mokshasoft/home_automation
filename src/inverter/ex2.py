@@ -6,9 +6,7 @@ from pymodbus.exceptions import ModbusIOException
 from pprint import pprint
 import growatt_rs485 as Growatt
 
-port = "/dev/ttyUSB0"
-client = ModbusClient(port=port, baudrate=9600, stopbits=1, parity='N', bytesize=8, timeout=1)
-client.connect()
+client = Growatt.get_client()
 
 def get_single(registers, index, unit):
     return round(float(registers[index]) * unit, 1)
