@@ -4,6 +4,7 @@ import json
 from pymodbus.client import ModbusSerialClient as ModbusClient
 from pymodbus.exceptions import ModbusIOException
 from pprint import pprint
+import growatt_rs485 as Growatt
 
 port = "/dev/ttyUSB0"
 client = ModbusClient(port=port, baudrate=9600, stopbits=1, parity='N', bytesize=8, timeout=1)
@@ -73,6 +74,12 @@ while True:
     print(f"charge voltage: {value_input_voltage/10}V")
     print(f"charge voltage: {value_charge/100}V")
     print(f"percent charge: {value_percent}%")
+
+    status = Growatt.read()
+    print(f"charge current: {status.chargeCurrent}V")
+    print(f"batteryPercentage: {status.batteryPercentage}V")
+    print(f"temperature: {status.temperature}%")
+
     time.sleep(5)
 
 # [12, 1467, 0, 0, 1540, 0, 0, 30, 0, 0, 110, 0, 500, 0, 0, 0, 0, 5054, 93, 4093, 0, 0, 2300, 5000, 0, 287, 219, 2, 0, 0, 0, 0, 283, 285, 2, 17, 0, 0, 0, 0, 0, 0, 0, 0, 20105, 0, 0, 0, 0, 41, 0, 25911, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 0, 3939, 0, 0, 0, 0, 0, 0, 110, 0, 500, 0, 0, 0, 0, 65535, 64426, 0, 0, 0, 25, 21, 0, 0, 12, 0, 803, 0, 60, 1, 4326, 0, 0, 4944, 4018, 1639, 2297, 5000]
