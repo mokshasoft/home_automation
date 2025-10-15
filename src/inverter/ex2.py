@@ -67,18 +67,21 @@ while False:
 while True:
     row = client.read_input_registers(address=0, count=125).registers
     print(f"{row}")
-    value_input_voltage = row[1]
-    value_charge = row[17]
-    value_percent = row[18]
+    value_input_voltage = row[1]   # raw value (tenths of a volt)
+    value_charge        = row[17]  # raw value (hundredths of a volt)
+    value_percent       = row[18]  # percent
+    watt_out = row[70]
 
-    print(f"charge voltage: {value_input_voltage/10}V")
-    print(f"charge voltage: {value_charge/100}V")
-    print(f"percent charge: {value_percent}%")
+    print(f"panel voltage  : {value_input_voltage/10:.1f} V")
+    print(f"battery voltage: {value_charge/100:.2f} V")
+    print(f"percent charge : {value_percent}%")
+    print(f"output watt?   : {watt_out/10:.1f} W")
 
-    status = Growatt.read()
-    print(f"charge current: {status.chargeCurrent}V")
-    print(f"batteryPercentage: {status.batteryPercentage}V")
-    print(f"temperature: {status.temperature}%")
+    status = Growatt.read(client)
+    print(f"panel voltage  : {status.inputVoltage:.1f} V")
+    print(f"battery voltage: {status.batteryVoltage:.2f} V")
+    print(f"percent charge : {status.batteryPercentage}%")
+    print(f"output watt?   : {status.outputWatt:.1f} W")
 
     time.sleep(5)
 

@@ -1,9 +1,32 @@
 from collections import namedtuple
+import os
+import json
+from pymodbus.client import ModbusSerialClient as ModbusClient
+from pymodbus.exceptions import ModbusIOException
+
+#port = "/dev/ttyUSB0"
+#client = ModbusClient(port=port, baudrate=9600, stopbits=1, parity='N', bytesize=8, timeout=1)
+#client.connect()
 
 # Define the structure with fields
-InverterStatus = namedtuple('InverterStatus', ['chargeCurrent', 'batteryPercentage', 'temperature'])
+InverterStatus = namedtuple('InverterStatus',
+               [ 'inputVoltage'
+               , 'batteryVoltage'
+               , 'batteryPercentage'
+               , 'outputWatt'])
 
-def read():
-    # Example data (chargeCurrent in Amps, batteryPercentage as %, temperature in °C)
-    battery_data = InverterStatus(chargeCurrent=3.5, batteryPercentage=80.5, temperature=25.0)
-    return battery_data
+def read(client):
+    status = None
+    response = client.read_input_registers(address=0, count=125)
+    if not response.isError():
+        row = response.registers
+        status = InverterStatus( inputVoltage      = row[1] / 10
+                          , batteryVoltage    = row[17] / 100
+                          , batteryPercentage = row[18]
+                          , outputWatt        = row[70] / 10)
+
+    else:
+        # Something went wrong with the Modbus request
+        print("Modbus error:", response)
+
+    return status
