@@ -6,6 +6,7 @@ State of Charge (SOC): Typically found around 0x3203 or 0x3204.
 
 Battery Capacity: Can be fetched from register 0x3300 or 0x3301.
 
+https://github.com/sdsolomo/growatt-x000ES/blob/main/getstatus.py
 https://diysolarforum.com/threads/hacking-the-new-growatt-wifi-f-modules.43231/#post-550051
 
 # List of registers with fields: name, value, type, multiplier, unit
