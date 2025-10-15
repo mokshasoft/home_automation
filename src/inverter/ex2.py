@@ -28,7 +28,7 @@ def changed_fields(prev, cur):
 
 previous_row = None          # no baseline yet
 
-while True:
+while False:
     # Read the 125 holding registers starting at address 0
     response = client.read_input_registers(address=0, count=125)
     if not response.isError():
