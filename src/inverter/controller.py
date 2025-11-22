@@ -1,6 +1,6 @@
 import time
 from collections import namedtuple
-from datetime import datetime, time as dtime, timedelta
+from datetime import datetime, timedelta
 import growatt_rs485 as growatt
 import switch
 
