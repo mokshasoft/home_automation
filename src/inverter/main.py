@@ -11,7 +11,7 @@ def changed_fields(prev, cur):
     return diffs
 
 
-def loop_print_changes(client):
+def loop_print_changes(client, interval=5):
     """Print register changes to help identify correct register addresses."""
     previous_row = None
     while True:
@@ -30,16 +30,16 @@ def loop_print_changes(client):
         else:
             print("Modbus error:", response)
 
-        time.sleep(5)
+        time.sleep(interval)
 
 
-def loop_print_status(client):
+def loop_print_status(client, interval=5):
     """Print inverter status in a loop."""
     while True:
         status = growatt.read(client)
         if status:
             growatt.print_status(status)
-        time.sleep(5)
+        time.sleep(interval)
 
 
 if __name__ == "__main__":
