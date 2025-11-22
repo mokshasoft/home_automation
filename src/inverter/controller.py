@@ -3,10 +3,10 @@ import growatt_rs485 as growatt
 import switch
 
 # Thresholds
-THRESHOLD_HIGH = 95      # Enable when battery >= this
-THRESHOLD_LOW = 90       # Disable when battery < this
+THRESHOLD_HIGH = 95  # Enable when battery >= this
+THRESHOLD_LOW = 90  # Disable when battery < this
 MAX_OUTPUT_WATTS = 5000  # Max watts per inverter
-LOAD_HEADROOM = 2000     # Headroom needed to enable switch
+LOAD_HEADROOM = 2000  # Headroom needed to enable switch
 
 
 def get_clients(ports=None):
