@@ -44,3 +44,12 @@ def read(client):
         print("Modbus error:", response)
 
     return status
+
+
+def print_status(status):
+    print(f"PV voltage     : {status.pv_voltage:.1f} V")
+    print(f"PV watts       : {status.pv_watts:.1f} W")
+    print(f"Battery voltage: {status.battery_voltage:.2f} V")
+    print(f"Battery percent: {status.battery_percentage}%")
+    print(f"Output watts   : {status.output_watts:.1f} W")
+    print(f"Utility watts  : {status.utility_watts:.1f} W")
