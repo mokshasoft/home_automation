@@ -5,7 +5,14 @@ from pymodbus.exceptions import ModbusIOException
 # Define the structure with fields
 InverterStatus = namedtuple(
     "InverterStatus",
-    ["inputVoltage", "batteryVoltage", "batteryPercentage", "outputWatt"],
+    [
+        "pv_voltage",
+        "pv_watts",
+        "battery_voltage",
+        "battery_percentage",
+        "output_watts",
+        "utility_watts",
+    ],
 )
 
 
@@ -24,10 +31,12 @@ def read(client):
     if not response.isError():
         row = response.registers
         status = InverterStatus(
-            inputVoltage=row[1] / 10,
-            batteryVoltage=row[17] / 100,
-            batteryPercentage=row[18],
-            outputWatt=row[70] / 10,
+            pv_voltage=row[1] / 10,
+            pv_watts=((row[3] << 16) + row[4]) / 10,  # ?
+            battery_voltage=row[17] / 100,
+            battery_percentage=row[18],
+            output_watts=row[70] / 10,
+            utility_watts=((row[21] << 16) + row[22]) / 10,  # ?
         )
 
     else:
