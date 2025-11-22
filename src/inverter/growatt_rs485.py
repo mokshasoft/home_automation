@@ -15,8 +15,8 @@ InverterStatus = namedtuple(
 )
 
 
-def get_client():
-    port = "/dev/ttyUSB0"
+def get_client(port="/dev/ttyUSB0"):
+    """Get a Modbus client for the specified port."""
     client = ModbusClient(
         port=port, baudrate=9600, stopbits=1, parity="N", bytesize=8, timeout=1
     )
