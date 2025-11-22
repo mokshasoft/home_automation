@@ -1,11 +1,15 @@
 [project]
 name = "growatt"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
+description = "Growatt inverter monitor via Modbus RS485"
 requires-python = ">=3.12"
 dependencies = [
     "pyserial",
     "pymodbus",
+]
+
+[dependency-groups]
+dev = [
+    "ruff",
 ]
 

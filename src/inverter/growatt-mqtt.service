@@ -1,10 +1,10 @@
 [Unit]
-Description=Growatt Battery → MQTT Bridge
+Description=Growatt Inverter Monitor
 After=network.target
 
 [Service]
-EnvironmentFile=/etc/default/growatt-mqtt
-ExecStart=/usr/bin/python3 /opt/bbb/growatt_mqtt.py
+WorkingDirectory=/opt/growatt
+ExecStart=/opt/growatt/.venv/bin/python main.py
 Restart=always
 RestartSec=5
 User=root

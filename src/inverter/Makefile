@@ -1,26 +1,16 @@
-BUILD_DIR=.
-DIST_DIR=./dist/vpe-flask-app
-
-# Build the package using uv
-.PHONY: build
-build:
-	@echo "Building package..."
-	uv build $(BUILD_DIR) --out-dir $(DIST_DIR)
-	@echo "Build complete. Packages are located in $(DIST_DIR)."
-
 # Static checks
 .PHONY: check
 check:
-	ruff check
+	uv run ruff check
 
 .PHONY: fix
 fix:
-	ruff check --fix
+	uv run ruff check --fix
+
+.PHONY: format
+format:
+	uv run ruff format
 
 .PHONY: run
 run:
-	uv run python growatt_usb.py
-
-.PHONY: read
-read:
-	uv run python ex2.py
+	uv run python main.py
