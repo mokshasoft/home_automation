@@ -1,6 +1,6 @@
 import time
 from collections import namedtuple
-from datetime import datetime, time as dtime
+from datetime import datetime, time as dtime, timedelta
 import growatt_rs485 as growatt
 import switch
 
@@ -10,6 +10,12 @@ THRESHOLD_LOW = 90  # Disable when battery < this
 MAX_OUTPUT_WATTS = 5000  # Max watts per inverter
 LOAD_HEADROOM = 2000  # Headroom needed to enable switch
 PV_ON_THRESHOLD = 10  # Watts to consider PV as "on"
+
+# Polling intervals (seconds)
+INTERVAL_ENGAGED = 1  # When switches are enabled
+INTERVAL_IDLE = 60  # During solar window but switches disabled
+INTERVAL_SLEEP = 300  # Outside solar window (night)
+WINDOW_BUFFER_MINUTES = 30  # Start polling X minutes before yesterday's start
 
 # Solar window tracking
 SolarWindow = namedtuple("SolarWindow", ["start_time", "end_time"])
@@ -35,6 +41,37 @@ def outside_solar_window(yesterday_window):
     if yesterday_window.end_time is None:
         return False
     return datetime.now().time() > yesterday_window.end_time
+
+
+def add_minutes_to_time(t, minutes):
+    """Add minutes to a time object. Returns new time."""
+    if t is None:
+        return None
+    dt = datetime.combine(datetime.today(), t)
+    dt = dt + timedelta(minutes=minutes)
+    return dt.time()
+
+
+def within_active_window(yesterday_window):
+    """Check if current time is within polling window (start - buffer to end + buffer)."""
+    if yesterday_window.start_time is None or yesterday_window.end_time is None:
+        return True  # No data yet, stay active
+
+    now = datetime.now().time()
+    start = add_minutes_to_time(yesterday_window.start_time, -WINDOW_BUFFER_MINUTES)
+    end = add_minutes_to_time(yesterday_window.end_time, WINDOW_BUFFER_MINUTES)
+
+    return start <= now <= end
+
+
+def get_interval(switches_enabled, yesterday_window):
+    """Get appropriate polling interval based on current state."""
+    if any(switches_enabled):
+        return INTERVAL_ENGAGED
+    elif within_active_window(yesterday_window):
+        return INTERVAL_IDLE
+    else:
+        return INTERVAL_SLEEP
 
 
 def rollover_solar_window(today_window):
@@ -118,7 +155,7 @@ def print_controller_status(statuses, switches_enabled):
     print()
 
 
-def run_controller(clients, switches, interval=5):
+def run_controller(clients, switches):
     """Main controller loop."""
     switches_enabled = [False] * len(switches)
     today_window = SolarWindow(start_time=None, end_time=None)
@@ -127,6 +164,9 @@ def run_controller(clients, switches, interval=5):
     last_date = datetime.now().date()
 
     while True:
+        # Get dynamic interval based on state
+        interval = get_interval(switches_enabled, yesterday_window)
+
         statuses = read_all_inverters(clients)
 
         if len(statuses) == len(switches):
@@ -142,7 +182,9 @@ def run_controller(clients, switches, interval=5):
                 print(f"New day - yesterday's window: {yesterday_window}")
 
             # Update solar window tracking
-            today_window, pv_was_on = update_solar_window(today_window, total_pv_watts, pv_was_on)
+            today_window, pv_was_on = update_solar_window(
+                today_window, total_pv_watts, pv_was_on
+            )
 
             # Update switches
             switches, switches_enabled = update_phase_switches(
