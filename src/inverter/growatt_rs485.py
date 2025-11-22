@@ -1,6 +1,5 @@
 from collections import namedtuple
 from pymodbus.client import ModbusSerialClient as ModbusClient
-from pymodbus.exceptions import ModbusIOException
 
 # Define the structure with fields
 InverterStatus = namedtuple(
