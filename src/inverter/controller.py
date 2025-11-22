@@ -17,8 +17,14 @@ INTERVAL_IDLE = 60  # During solar window but switches disabled
 INTERVAL_SLEEP = 300  # Outside solar window (night)
 WINDOW_BUFFER_MINUTES = 30  # Start polling X minutes before yesterday's start
 
+# Verification
+PV_INCREASE_TOLERANCE = 500  # Tolerance for verification (watts)
+
 # Solar window tracking
 SolarWindow = namedtuple("SolarWindow", ["start_time", "end_time"])
+
+# Pending verification state
+PendingVerification = namedtuple("PendingVerification", ["switch_index", "pv_before"])
 
 
 def update_solar_window(window, pv_watts, pv_was_on):
@@ -102,6 +108,30 @@ def can_enable_phase(status):
     return (status.output_watts + LOAD_HEADROOM) <= MAX_OUTPUT_WATTS
 
 
+def verify_pv_increase(pv_before, pv_after):
+    """Verify that PV increased by expected amount after engaging switch."""
+    increase = pv_after - pv_before
+    expected = LOAD_HEADROOM - PV_INCREASE_TOLERANCE
+    return increase >= expected
+
+
+def find_next_switch_to_engage(statuses, switches_enabled, yesterday_window):
+    """Find the next switch that should be engaged. Returns index or None."""
+    for i, (status, enabled) in enumerate(zip(statuses, switches_enabled)):
+        if not enabled and should_enable_phase(status, False, yesterday_window):
+            return i
+    return None
+
+
+def find_switches_to_disable(statuses, switches_enabled, yesterday_window):
+    """Find switches that should be disabled. Returns list of indices."""
+    to_disable = []
+    for i, (status, enabled) in enumerate(zip(statuses, switches_enabled)):
+        if enabled and not should_enable_phase(status, True, yesterday_window):
+            to_disable.append(i)
+    return to_disable
+
+
 def should_enable_phase(status, currently_enabled, yesterday_window):
     """Determine if a phase switch should be enabled."""
     if status is None:
@@ -162,6 +192,7 @@ def run_controller(clients, switches):
     yesterday_window = SolarWindow(start_time=None, end_time=None)
     pv_was_on = False
     last_date = datetime.now().date()
+    pending = None  # PendingVerification or None
 
     while True:
         # Get dynamic interval based on state
@@ -186,10 +217,49 @@ def run_controller(clients, switches):
                 today_window, total_pv_watts, pv_was_on
             )
 
-            # Update switches
-            switches, switches_enabled = update_phase_switches(
-                switches, statuses, switches_enabled, yesterday_window
+            # Handle pending verification
+            if pending is not None:
+                if verify_pv_increase(pending.pv_before, total_pv_watts):
+                    print(
+                        f"Phase {pending.switch_index} verified (PV: {pending.pv_before:.0f} -> {total_pv_watts:.0f}W)"
+                    )
+                    pending = None
+                else:
+                    print(
+                        f"Phase {pending.switch_index} failed verification (PV: {pending.pv_before:.0f} -> {total_pv_watts:.0f}W), disabling"
+                    )
+                    switches[pending.switch_index] = switch.set_switch(
+                        switches[pending.switch_index], False
+                    )
+                    switches_enabled[pending.switch_index] = False
+                    pending = None
+
+            # Disable switches that should be off
+            to_disable = find_switches_to_disable(
+                statuses, switches_enabled, yesterday_window
             )
+            for i in to_disable:
+                switches[i] = switch.set_switch(switches[i], False)
+                switches_enabled[i] = False
+                print(f"Disabling phase {i}")
+
+            # Engage next switch if no pending verification
+            if pending is None:
+                next_switch = find_next_switch_to_engage(
+                    statuses, switches_enabled, yesterday_window
+                )
+                if next_switch is not None:
+                    switches[next_switch] = switch.set_switch(
+                        switches[next_switch], True
+                    )
+                    switches_enabled[next_switch] = True
+                    pending = PendingVerification(
+                        switch_index=next_switch, pv_before=total_pv_watts
+                    )
+                    print(
+                        f"Engaging phase {next_switch} for verification (PV: {total_pv_watts:.0f}W)"
+                    )
+
             print_controller_status(statuses, switches_enabled)
         else:
             print(f"Warning: got {len(statuses)} statuses for {len(switches)} switches")
