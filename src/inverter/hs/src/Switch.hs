@@ -11,7 +11,7 @@ module Switch (
     printSwitches,
 ) where
 
-import Control.Monad (forM_, unless)
+import Control.Monad (forM_, unless, when)
 import System.Directory (doesPathExist)
 
 -- | GPIO pin number
