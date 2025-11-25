@@ -64,17 +64,39 @@ Active-HIGH provides **fail-safe behavior**:
 3. **Boot sequence**: GPIOs default to LOW → relays stay OFF until controller explicitly enables them
 4. **Predictable defaults**: System defaults to safe state (all loads disconnected)
 
-#### Configuration Jumper
+#### Configuration Options
 
-Most relay modules have a jumper to select trigger mode:
-- Set jumper to **"H"** or **"HIGH"** position
-- Avoid **"L"** or **"LOW"** trigger mode (would invert behavior)
+This relay module supports **both Active-HIGH and Active-LOW** trigger modes:
 
-Some modules may label this as:
-- "High Level Trigger" vs "Low Level Trigger"
-- "Active High" vs "Active Low"
+**Active-HIGH (Recommended)**:
+- GPIO HIGH (1) = Relay ON
+- GPIO LOW (0) = Relay OFF
+- **Safe default**: System defaults to all relays OFF
 
-Consult your specific module's documentation if the jumper labels differ.
+**Active-LOW (Not recommended)**:
+- GPIO LOW (0) = Relay ON
+- GPIO HIGH (1) = Relay OFF
+- **Unsafe**: Relays would be ON by default during boot/crash
+
+**How to Configure**:
+
+The module may have configuration options via:
+1. **Jumper on the board** - Look for jumpers labeled "H/L", "HIGH/LOW", or similar
+2. **Solder bridges** - Some modules use solder pads instead of removable jumpers
+3. **Fixed configuration** - Some modules are hardwired to one mode (check with multimeter)
+
+**To verify your configuration**:
+1. Power the module with 5V
+2. Leave all IN1-IN4 pins **disconnected** (floating)
+3. Observe relay LEDs:
+   - If LEDs are **OFF** → Module is Active-HIGH ✓
+   - If LEDs are **ON** → Module is Active-LOW (reconfigure if possible)
+
+Alternatively, ground an input pin (connect to GND):
+- If relay **activates** → Active-LOW
+- If relay stays **off** → Active-HIGH ✓
+
+If your module is hardwired to Active-LOW and cannot be changed, you'll need to invert the logic in `src/Switch.hs` (not recommended - loses fail-safe behavior).
 
 ### Power Supply Considerations
 
