@@ -19,7 +19,7 @@ module Controller (
 
 import Control.Concurrent (threadDelay)
 import Control.Monad (foldM, forM_)
-import Data.Maybe (catMaybes, isJust)
+import Data.Maybe (catMaybes)
 import Data.Time.Calendar
 import Data.Time.Clock
 import Data.Time.LocalTime
@@ -138,8 +138,8 @@ outsideSolarWindow _ (SolarWindow _ (Just end)) now = now > end
 
 -- | Check if within active polling window
 withinActiveWindow :: Config -> SolarWindow -> TimeOfDay -> Bool
-withinActiveWindow cfg (SolarWindow Nothing _) _ = True
-withinActiveWindow cfg (SolarWindow _ Nothing) _ = True
+withinActiveWindow _ (SolarWindow Nothing _) _ = True
+withinActiveWindow _ (SolarWindow _ Nothing) _ = True
 withinActiveWindow cfg (SolarWindow (Just start) (Just end)) now =
     let bufferedStart = addMinutesToTime start (-(windowBufferMinutes cfg))
         bufferedEnd = addMinutesToTime end (windowBufferMinutes cfg)
@@ -203,7 +203,7 @@ decideActions cfg state statuses now today =
         -- Find switches to disable
         disableActions =
             [ DisableSwitch i
-            | (i, (status, en)) <- zip [0 ..] (zip statuses enabled)
+            | (i, (status, en)) <- zip [0 :: Int ..] (zip statuses enabled)
             , en
             , not (shouldEnablePhase cfg status True window now)
             ]
@@ -213,7 +213,7 @@ decideActions cfg state statuses now today =
             Just _ -> []
             Nothing ->
                 case [ i
-                     | (i, (status, en)) <- zip [0 ..] (zip statuses enabled)
+                     | (i, (status, en)) <- zip [0 :: Int ..] (zip statuses enabled)
                      , not en
                      , shouldEnablePhase cfg status False window now
                      ] of
@@ -287,16 +287,16 @@ printStatus statuses enabled = do
     case statuses of
         (s : _) -> putStrLn $ "Battery: " ++ show (Growatt.batteryPercentage s) ++ "%"
         [] -> return ()
-    forM_ (zip3 [0 ..] statuses enabled) $ \(i, status, en) -> do
+    forM_ (zip3 [0 :: Int ..] statuses enabled) $ \(i, status, en) -> do
         let state = if en then "ON" else "OFF"
         putStrLn $ "Phase " ++ show i ++ ": " ++ show (Growatt.outputWatts status) ++ "W [" ++ state ++ "]"
     putStrLn ""
 
 -- | Main controller loop
 runController :: Config -> [Growatt.Client] -> [Switch.SwitchState] -> IO ()
-runController cfg clients switches = do
-    state <- initialState (length switches)
-    loop state switches
+runController cfg clients initSwitches = do
+    state <- initialState (length initSwitches)
+    loop state initSwitches
   where
     loop state switches = do
         -- Read all inverters

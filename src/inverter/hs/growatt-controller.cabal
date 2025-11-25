@@ -1,4 +1,4 @@
-cabal-version: 1.12
+cabal-version: 2.2
 
 -- This file has been generated from package.yaml by hpack version 0.38.1.
 --
@@ -10,7 +10,22 @@ synopsis:       Growatt inverter controller for 3-phase surplus energy managemen
 license:        MIT
 build-type:     Simple
 
+common warnings
+  ghc-options:
+      -Wall
+      -Wcompat
+      -Widentities
+      -Wincomplete-record-updates
+      -Wincomplete-uni-patterns
+      -Wmissing-export-lists
+      -Wmissing-home-modules
+      -Wpartial-fields
+      -Wredundant-constraints
+      -Wunused-packages
+      -Wunused-type-patterns
+
 library
+  import: warnings
   exposed-modules:
       Growatt
       Switch
@@ -19,7 +34,8 @@ library
       Paths_growatt_controller
   hs-source-dirs:
       src
-  ghc-options: -Wall -O2
+  ghc-options:
+      -O2
   build-depends:
       base >=4.14 && <5
     , directory
@@ -29,31 +45,35 @@ library
   default-language: Haskell2010
 
 executable controller
+  import: warnings
   main-is: ControllerMain.hs
   other-modules:
       Paths_growatt_controller
   hs-source-dirs:
       app
-  ghc-options: -Wall -O2
+  ghc-options:
+      -O2
+      -threaded
+      -rtsopts
+      -with-rtsopts=-N
   build-depends:
       base >=4.14 && <5
-    , directory
     , growatt-controller
-    , libmodbus
-    , time
   default-language: Haskell2010
 
 executable main
+  import: warnings
   main-is: Main.hs
   other-modules:
       Paths_growatt_controller
   hs-source-dirs:
       app
-  ghc-options: -Wall -O2
+  ghc-options:
+      -O2
+      -threaded
+      -rtsopts
+      -with-rtsopts=-N
   build-depends:
       base >=4.14 && <5
-    , directory
     , growatt-controller
-    , libmodbus
-    , time
   default-language: Haskell2010

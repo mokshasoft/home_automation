@@ -2,7 +2,6 @@ module Main where
 
 import Control.Concurrent (threadDelay)
 import Control.Monad (forever)
-import Data.Maybe (catMaybes)
 
 import qualified Growatt
 

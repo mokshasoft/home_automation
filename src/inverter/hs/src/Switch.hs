@@ -11,9 +11,8 @@ module Switch (
     printSwitches,
 ) where
 
-import Control.Monad (forM, forM_)
+import Control.Monad (forM_)
 import System.Directory (doesPathExist)
-import System.IO
 
 -- | GPIO pin number
 type Pin = Int
@@ -107,6 +106,6 @@ cleanupSwitches switches = forM_ switches $ \s -> do
 
 -- | Print switch states
 printSwitches :: [SwitchState] -> IO ()
-printSwitches switches = forM_ (zip [0 ..] switches) $ \(i, s) -> do
+printSwitches switches = forM_ (zip [0 :: Int ..] switches) $ \(i, s) -> do
     let state = if isClosed s then "CLOSED" else "OPEN"
     putStrLn $ "Switch " ++ show i ++ " (GPIO " ++ show (pin s) ++ "): " ++ state
