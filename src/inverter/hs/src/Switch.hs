@@ -11,7 +11,7 @@ module Switch (
     printSwitches,
 ) where
 
-import Control.Monad (forM_)
+import Control.Monad (forM_, unless)
 import System.Directory (doesPathExist)
 
 -- | GPIO pin number
@@ -43,18 +43,14 @@ exportPin :: Pin -> IO ()
 exportPin p = do
     let path = gpioBase ++ "/gpio" ++ show p
     exists <- doesPathExist path
-    if not exists
-        then writeFile gpioExport (show p)
-        else return ()
+    unless exists $ writeFile gpioExport (show p)
 
 -- | Unexport a GPIO pin
 unexportPin :: Pin -> IO ()
 unexportPin p = do
     let path = gpioBase ++ "/gpio" ++ show p
     exists <- doesPathExist path
-    if exists
-        then writeFile gpioUnexport (show p)
-        else return ()
+    when exists $ writeFile gpioUnexport (show p)
 
 -- | Set GPIO direction
 setDirection :: Pin -> String -> IO ()

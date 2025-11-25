@@ -183,10 +183,7 @@ decideActions cfg state statuses now today =
         window = yesterdayWindow state
 
         -- Day rollover
-        rolloverAction =
-            if today /= lastDate state
-                then [DayRollover (todayWindow state)]
-                else []
+        rolloverAction = [DayRollover (todayWindow state) | today /= lastDate state]
 
         -- Solar window update
         (newWindow, newPvOn) = updateSolarWindow cfg (todayWindow state) totalPv (pvWasOn state) now
@@ -255,7 +252,7 @@ setAt i x xs = take i xs ++ [x] ++ drop (i + 1) xs
 -- | Get polling interval based on state
 getInterval :: Config -> ControllerState -> TimeOfDay -> Int
 getInterval cfg state now
-    | any id (switchesEnabled state) = intervalEngaged cfg
+    | or (switchesEnabled state) = intervalEngaged cfg
     | withinActiveWindow cfg (yesterdayWindow state) now = intervalIdle cfg
     | otherwise = intervalSleep cfg
 
