@@ -22,15 +22,15 @@
             gmp # to be able to build the server
             zlib # to build server
           ];
-        };
 
-        # shellHook to remind user to check Podman
-        shellHook = ''
-          if ! podman info &>/dev/null; then
-            echo "Warning: Podman is not running properly."
-            echo "Please make sure Podman is installed and working."
-          fi
-        '';
+          # shellHook to remind user to check Podman
+          shellHook = ''
+            if ! podman info &>/dev/null; then
+              echo "Warning: Podman is not running properly."
+              echo "Please make sure Podman is installed and working."
+            fi
+          '';
+        };
       });
 }
 
