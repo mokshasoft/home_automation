@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 module Growatt
   ( InverterStatus(..)
   , Client
@@ -8,6 +9,8 @@ module Growatt
 
 import Control.Exception (try)
 import Data.Word (Word16)
+import qualified Data.Vector.Storable as V
+import GHC.IO.Exception (IOError)
 import System.Modbus
 
 -- | Inverter status readings
@@ -21,12 +24,13 @@ data InverterStatus = InverterStatus
   } deriving (Show, Eq)
 
 -- | Modbus client handle
-type Client = Modbus
+type Client = Context
 
 -- | Get a Modbus client for the specified port
 getClient :: String -> IO Client
 getClient port = do
-  ctx <- newRTU port 9600 ParityNone 8 1
+  ctx <- new_rtu port (Baud 9600) ParityNone (DataBits 8) (StopBits 1)
+  set_slave ctx (DeviceAddress 0)
   connect ctx
   return ctx
 
@@ -44,9 +48,12 @@ readSingle regs idx scale = fromIntegral (regs !! idx) * scale
 -- | Read inverter status from client
 readInverter :: Client -> IO (Maybe InverterStatus)
 readInverter client = do
-  result <- try $ readInputRegisters client 0 125
+  result <- try $ do
+    buffer <- mkRegisterVector 125
+    vec <- read_input_registers client (Addr 0) buffer :: IO (V.Vector Word16)
+    return $ V.toList vec
   case result of
-    Left (err :: ModbusException) -> do
+    Left (err :: IOError) -> do
       putStrLn $ "Modbus error: " ++ show err
       return Nothing
     Right regs -> return $ Just InverterStatus

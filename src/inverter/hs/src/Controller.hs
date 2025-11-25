@@ -20,7 +20,7 @@ import Data.Time.LocalTime
 import Data.Time.Calendar
 import Data.Maybe (catMaybes, isJust)
 import Control.Concurrent (threadDelay)
-import Control.Monad (forM_)
+import Control.Monad (forM_, foldM)
 
 import qualified Growatt
 import qualified Switch
@@ -104,7 +104,9 @@ initialState numSwitches = do
 addMinutesToTime :: TimeOfDay -> Int -> TimeOfDay
 addMinutesToTime t mins =
   let secs = timeOfDayToTime t + fromIntegral (mins * 60)
-  in timeToTimeOfDay (secs `mod` 86400)
+      picosInt = floor (secs * 1000000000000) :: Integer
+      wrappedPicos = picosInt `mod` (86400 * 1000000000000)
+  in timeToTimeOfDay (fromIntegral wrappedPicos / 1000000000000)
 
 -- | Check if outside solar window
 outsideSolarWindow :: Config -> SolarWindow -> TimeOfDay -> Bool
@@ -314,6 +316,3 @@ runController cfg clients switches = do
                      " statuses for " ++ show (length switches) ++ " switches"
           threadDelay (intervalIdle cfg)
           loop state switches
-
-    foldM f z []     = return z
-    foldM f z (x:xs) = f x z >>= \z' -> foldM f z' xs

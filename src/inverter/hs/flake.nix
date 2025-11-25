@@ -21,6 +21,7 @@
             fourmolu
             gmp # to be able to build the server
             zlib # to build server
+            libmodbus # C library for Modbus protocol
           ];
 
           # shellHook to remind user to check Podman
