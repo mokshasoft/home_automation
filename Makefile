@@ -13,7 +13,7 @@ SYSTEMD_DIR = ./systemd
 QEMU_BIN = $(shell which qemu-arm-static)
 QEMU = qemu-system-arm
 
-create-bbb-image: download unpack mount setup-resolv broker led-service growatt-mqtt unmount
+create-bbb-image: download unpack mount setup-resolv broker led-service controller-service unmount
 	@echo "Wrote BeagleBone Black ISO to $(TARGET_IMG)"
 
 # 1. Download Debian ARM image
@@ -63,25 +63,28 @@ broker:
 led-service:
 	@echo "Copying LED blinker script and service into image..."
 	sudo mkdir -p $(MOUNT_DIR)/opt/bbb
-	sudo cp src/blink/led_blink.py $(MOUNT_DIR)/opt/bbb/
+	sudo cp app/blink/led_blink.py $(MOUNT_DIR)/opt/bbb/
 	sudo chmod +x $(MOUNT_DIR)/opt/bbb/led_blink.py
-	sudo cp src/blink/led-blink.service $(MOUNT_DIR)/etc/systemd/system/
+	sudo cp app/blink/led-blink.service $(MOUNT_DIR)/etc/systemd/system/
 	# Enable the service inside chroot
 	sudo chroot $(MOUNT_DIR) $(QEMU_BIN) /bin/bash -c "systemctl enable led-blink.service"
 
-# Install Growatt MQTT
-growatt-mqtt:
-	@echo "Copying Growatt MQTT script and service into image..."
+# 7. Install Haskell Controller Service
+controller-service:
+	@echo "Installing Haskell controller service..."
+	# Build the controller first
+	cd app/controller && stack build
+	# Copy executable to image
 	sudo mkdir -p $(MOUNT_DIR)/opt/bbb
-	sudo mkdir -p $(MOUNT_DIR)/etc/default
-	sudo cp src/inverter/growatt_mqtt.py $(MOUNT_DIR)/opt/bbb/
-	sudo chmod +x $(MOUNT_DIR)/opt/bbb/growatt_mqtt.py
-	sudo cp src/inverter/growatt-mqtt.service $(MOUNT_DIR)/etc/systemd/system/
-	sudo cp src/inverter/.env $(MOUNT_DIR)/etc/default/growatt-mqtt
-	# Enable the service inside chroot
-	sudo chroot $(MOUNT_DIR) $(QEMU_BIN) /bin/bash -c "systemctl enable growatt-mqtt.service"
+	# Find and copy the built executable
+	CONTROLLER_BIN=$$(find app/controller/.stack-work -name growatt-controller -type f -executable | head -1); \
+	sudo cp $$CONTROLLER_BIN $(MOUNT_DIR)/opt/bbb/growatt-controller
+	sudo chmod +x $(MOUNT_DIR)/opt/bbb/growatt-controller
+	# Copy and enable service
+	sudo cp app/controller/growatt-controller.service $(MOUNT_DIR)/etc/systemd/system/
+	sudo chroot $(MOUNT_DIR) $(QEMU_BIN) /bin/bash -c "systemctl enable growatt-controller.service"
 
-# 7. Unmount filesystem
+# 8. Unmount filesystem
 unmount:
 	sudo umount $(MOUNT_DIR)
 

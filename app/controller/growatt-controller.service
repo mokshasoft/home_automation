@@ -1,0 +1,21 @@
+[Unit]
+Description=Growatt Inverter Controller (Haskell)
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/bbb
+ExecStart=/opt/bbb/growatt-controller
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Resource limits
+MemoryLimit=256M
+CPUQuota=50%
+
+[Install]
+WantedBy=multi-user.target
