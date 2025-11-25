@@ -11,7 +11,6 @@ module Growatt (
 import Control.Exception (try)
 import qualified Data.Vector.Storable as V
 import Data.Word (Word16)
-import GHC.IO.Exception (IOError)
 import System.Modbus
 
 -- | Inverter status readings
