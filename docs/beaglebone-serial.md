@@ -64,3 +64,54 @@ Plug the FTDI connector directly onto J1 with the **black wire towards the DC ba
 | Kill session                | `Ctrl+a` then `k` |
 | Reattach to session         | `screen -r`       |
 | List running sessions       | `screen -ls`      |
+
+## Building the NixOS Image
+
+The flake provides cross-compilation for ARM and NixOS image generation.
+
+### Available Build Targets
+
+```bash
+# Enter dev shell
+nix develop
+
+# Build the controller for x86 (local testing)
+nix build .#growatt-controller
+
+# Build the controller for ARM (cross-compiled)
+nix build .#growatt-controller-arm
+
+# Build the SD card image for BBB
+nix build .#images.bbb
+```
+
+### Flashing the SD Card
+
+```bash
+# Build the image
+nix build .#images.bbb
+
+# Decompress and flash (replace /dev/sdX with your SD card)
+zstd -d result/sd-image/nixos-sd-image-*.img.zst -o nixos-bbb.img
+sudo dd if=nixos-bbb.img of=/dev/sdX bs=4M status=progress
+sync
+```
+
+### Booting from SD Card
+
+1. Insert the SD card into the BBB
+2. Hold the **S2 button** (near the SD slot) while powering on
+3. Connect via serial to see boot messages
+
+### NixOS Credentials
+
+- Username: `nixos`
+- Password: `nixos`
+- Root password: `nixos`
+
+### What's Included
+
+- NixOS for ARMv7
+- `growatt-controller` service (auto-starts on boot)
+- SSH server enabled
+- Basic tools: vim, htop, screen
