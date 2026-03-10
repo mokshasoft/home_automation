@@ -49,6 +49,9 @@
         modules = [
           "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-armv7l-multiplatform.nix"
           ({ pkgs, lib, growatt-controller-arm, ... }: {
+            # Disable ZFS (broken on this kernel)
+            boot.supportedFilesystems.zfs = lib.mkForce false;
+
             # Hostname
             networking.hostName = "bbb";
 
