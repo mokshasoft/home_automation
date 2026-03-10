@@ -17,6 +17,7 @@
           buildInputs = with pkgs; [
             gnumake
             qemu
+            screen
           ];
         };
       });
