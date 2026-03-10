@@ -81,15 +81,21 @@ nix build .#growatt-controller
 # Build the controller for ARM (cross-compiled)
 nix build .#growatt-controller-arm
 
-# Build the SD card image for BBB
-nix build .#images.bbb
+# Build the SD card image for BBB (requires QEMU binfmt for ARM emulation)
+nix build .#images.bbb --extra-platforms armv7l-linux
 ```
+
+To avoid passing `--extra-platforms` every time, add to `/etc/nix/nix.conf`:
+```
+extra-platforms = armv7l-linux
+```
+Then restart the daemon: `sudo systemctl restart nix-daemon`
 
 ### Flashing the SD Card
 
 ```bash
 # Build the image
-nix build .#images.bbb
+nix build .#images.bbb --extra-platforms armv7l-linux
 
 # Decompress and flash (replace /dev/sdX with your SD card)
 zstd -d result/sd-image/nixos-sd-image-*.img.zst -o nixos-bbb.img
