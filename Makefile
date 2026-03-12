@@ -1,8 +1,8 @@
 # Makefile for BeagleBone Black automation on Fedora host
 
 DOWNLOAD_DIR = ./downloads
-IMAGE_URL = https://files.beagle.cc/file/beagleboard-public-2021/images/am335x-debian-12.11-base-v6.15-armhf-2025-08-08-4gb.img.xz
-IMAGE_CHECKSUM_URL = https://files.beagle.cc/file/beagleboard-public-2021/images/am335x-debian-12.11-base-v6.15-armhf-2025-08-08-4gb.img.xz.sha256sum
+IMAGE_URL = https://files.beagle.cc/file/beagleboard-public-2021/images/am335x-debian-13.3-base-v5.10-ti-armhf-2026-02-12-4gb.img.xz
+IMAGE_CHECKSUM_URL = https://files.beagle.cc/file/beagleboard-public-2021/images/am335x-debian-13.3-base-v5.10-ti-armhf-2026-02-12-4gb.img.xz.sha256sum
 IMAGE_FILE = $(DOWNLOAD_DIR)/bb-debian.img.xz
 IMAGE_CHECKSUM_FILE = $(DOWNLOAD_DIR)/bb-debian.img.xz.sha256sum
 TARGET_IMG_DIR = ./bb-image
@@ -13,8 +13,8 @@ SYSTEMD_DIR = ./systemd
 QEMU_BIN = $(shell which qemu-arm-static)
 QEMU = qemu-system-arm
 
-create-bbb-image: download unpack mount setup-resolv broker led-service controller-service unmount
-	@echo "Wrote BeagleBone Black ISO to $(TARGET_IMG)"
+create-bbb-image: download unpack mount setup-resolv led-service controller-service unmount
+	@echo "Wrote BeagleBone Black image to $(TARGET_IMG)"
 
 # 1. Download Debian ARM image
 download:
@@ -53,13 +53,7 @@ setup-resolv:
 	@echo "nameserver 1.1.1.1" | sudo tee -a $(MOUNT_DIR)/etc/resolv.conf > /dev/null
 
 
-# 5. Install MQTT broker (Mosquitto) via chroot
-broker:
-	sudo chroot $(MOUNT_DIR) $(QEMU_BIN) /bin/bash -c "apt update && apt install -y mosquitto"
-	# Enable the service inside chroot
-	sudo chroot $(MOUNT_DIR) $(QEMU_BIN) /bin/bash -c "systemctl enable mosquitto.service"
-
-# 6. Install LED blinker service
+# 5. Install LED blinker service
 led-service:
 	@echo "Copying LED blinker script and service into image..."
 	sudo mkdir -p $(MOUNT_DIR)/opt/bbb
@@ -69,22 +63,26 @@ led-service:
 	# Enable the service inside chroot
 	sudo chroot $(MOUNT_DIR) $(QEMU_BIN) /bin/bash -c "systemctl enable led-blink.service"
 
-# 7. Install Haskell Controller Service
+# 6. Install C Controller Service
 controller-service:
-	@echo "Installing Haskell controller service..."
-	# Build the controller first
-	cd app/controller && stack build
-	# Copy executable to image
-	sudo mkdir -p $(MOUNT_DIR)/opt/bbb
-	# Find and copy the built executable
-	CONTROLLER_BIN=$$(find app/controller/.stack-work -name growatt-controller -type f -executable | head -1); \
-	sudo cp $$CONTROLLER_BIN $(MOUNT_DIR)/opt/bbb/growatt-controller
-	sudo chmod +x $(MOUNT_DIR)/opt/bbb/growatt-controller
+	@echo "Installing C controller service..."
+	# Install build dependencies in the image
+	sudo chroot $(MOUNT_DIR) $(QEMU_BIN) /bin/bash -c "apt update && apt install -y build-essential libmodbus-dev"
+	# Copy source code to image for building
+	sudo mkdir -p $(MOUNT_DIR)/tmp/controller-c
+	sudo cp app/controller-c/*.c app/controller-c/*.h app/controller-c/Makefile $(MOUNT_DIR)/tmp/controller-c/
+	# Build inside chroot
+	sudo chroot $(MOUNT_DIR) $(QEMU_BIN) /bin/bash -c "cd /tmp/controller-c && make clean && make"
+	# Install the binary
+	sudo cp $(MOUNT_DIR)/tmp/controller-c/controller $(MOUNT_DIR)/usr/local/bin/controller
+	sudo chmod +x $(MOUNT_DIR)/usr/local/bin/controller
+	# Clean up build directory
+	sudo rm -rf $(MOUNT_DIR)/tmp/controller-c
 	# Copy and enable service
-	sudo cp app/controller/growatt-controller.service $(MOUNT_DIR)/etc/systemd/system/
+	sudo cp deploy/growatt-controller.service $(MOUNT_DIR)/etc/systemd/system/
 	sudo chroot $(MOUNT_DIR) $(QEMU_BIN) /bin/bash -c "systemctl enable growatt-controller.service"
 
-# 8. Unmount filesystem
+# 7. Unmount filesystem
 unmount:
 	sudo umount $(MOUNT_DIR)
 

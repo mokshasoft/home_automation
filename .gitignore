@@ -1,3 +1,9 @@
 downloads/
 bb-image/
 mnt/
+result
+
+# C controller build artifacts
+app/controller-c/*.o
+app/controller-c/controller
+deploy/controller
