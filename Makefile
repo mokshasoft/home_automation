@@ -17,7 +17,7 @@ QEMU = qemu-system-arm
 SD_DEV ?= /dev/mmcblk0
 
 # BeagleBone Black SSH connection (override with: make deploy BBB_HOST=user@host)
-BBB_HOST ?= root@192.168.7.2
+BBB_HOST ?= debian@192.168.7.2
 
 create-bbb-image: download unpack mount setup-resolv led-service controller-service unmount
 	@echo "Wrote BeagleBone Black image to $(TARGET_IMG)"
@@ -118,16 +118,15 @@ flash:
 	@echo "Flash complete. Safe to remove SD card."
 
 # Flash image to BBB eMMC over SSH
-# Usage: make flash-emmc BBB_HOST=root@192.168.7.2
-# Note: BBB must be booted from SD card (hold boot button during power-on)
+# Usage: make flash-emmc BBB_HOST=debian@192.168.7.2
+# Note: Requires passwordless sudo on BBB (see docs/bbb-setup.md)
 flash-emmc:
 	@echo "Flashing $(TARGET_IMG) to eMMC on $(BBB_HOST)..."
 	@echo "WARNING: This will overwrite the eMMC on the BeagleBone Black"
-	@echo "Make sure the BBB is booted from SD card, not eMMC!"
 	@read -p "Are you sure? [y/N] " confirm && [ "$$confirm" = "y" ] || exit 1
 	@echo "Copying image to BBB (this may take a few minutes)..."
-	cat $(TARGET_IMG) | ssh $(BBB_HOST) "dd of=/dev/mmcblk1 bs=4M status=progress conv=fsync && sync"
-	@echo "Flash complete. Remove SD card and reboot to boot from eMMC."
+	cat $(TARGET_IMG) | ssh $(BBB_HOST) "sudo dd of=/dev/mmcblk1 bs=4M status=progress conv=fsync && sync"
+	@echo "Flash complete. Reboot to apply: ssh $(BBB_HOST) 'sudo reboot'"
 
 # Deploy binaries to running BBB via SSH (no reboot needed)
 # Usage: make deploy BBB_HOST=root@192.168.7.2
@@ -151,32 +150,34 @@ deploy-build:
 # Copy binaries to BBB
 deploy-copy:
 	@echo "Copying binaries to $(BBB_HOST)..."
-	scp ./build/controller ./build/monitor $(BBB_HOST):/usr/local/bin/
-	scp deploy/growatt-controller.service $(BBB_HOST):/etc/systemd/system/
+	scp ./build/controller ./build/monitor $(BBB_HOST):/tmp/
+	ssh $(BBB_HOST) "sudo cp /tmp/controller /tmp/monitor /usr/local/bin/ && sudo chmod +x /usr/local/bin/controller /usr/local/bin/monitor"
+	scp deploy/growatt-controller.service $(BBB_HOST):/tmp/
+	ssh $(BBB_HOST) "sudo cp /tmp/growatt-controller.service /etc/systemd/system/"
 
 # Restart service on BBB
 deploy-restart:
 	@echo "Restarting controller service on $(BBB_HOST)..."
-	ssh $(BBB_HOST) "systemctl daemon-reload && systemctl restart growatt-controller.service"
+	ssh $(BBB_HOST) "sudo systemctl daemon-reload && sudo systemctl restart growatt-controller.service"
 	@echo "Deploy complete."
 
 # Build on BBB directly (if it has build-essential and libmodbus-dev)
-# Usage: make deploy-local BBB_HOST=root@192.168.7.2
+# Usage: make deploy-local BBB_HOST=debian@192.168.7.2
 deploy-local:
 	@echo "Building and deploying on $(BBB_HOST)..."
 	ssh $(BBB_HOST) "mkdir -p /tmp/controller-c"
 	scp app/controller-c/*.c app/controller-c/*.h app/controller-c/Makefile $(BBB_HOST):/tmp/controller-c/
-	ssh $(BBB_HOST) "cd /tmp/controller-c && make clean && make && cp controller monitor /usr/local/bin/ && rm -rf /tmp/controller-c"
-	scp deploy/growatt-controller.service $(BBB_HOST):/etc/systemd/system/
-	ssh $(BBB_HOST) "systemctl daemon-reload && systemctl restart growatt-controller.service"
+	ssh $(BBB_HOST) "cd /tmp/controller-c && make clean && make && sudo cp controller monitor /usr/local/bin/ && rm -rf /tmp/controller-c"
+	scp deploy/growatt-controller.service $(BBB_HOST):/tmp/
+	ssh $(BBB_HOST) "sudo cp /tmp/growatt-controller.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl restart growatt-controller.service"
 	@echo "Deploy complete."
 
 # Quick copy of pre-built binaries (if already built for ARM)
-# Usage: make deploy-quick BBB_HOST=root@192.168.7.2
+# Usage: make deploy-quick BBB_HOST=debian@192.168.7.2
 deploy-quick:
 	@echo "Copying pre-built binaries to $(BBB_HOST)..."
-	scp ./build/controller ./build/monitor $(BBB_HOST):/usr/local/bin/
-	ssh $(BBB_HOST) "systemctl restart growatt-controller.service"
+	scp ./build/controller ./build/monitor $(BBB_HOST):/tmp/
+	ssh $(BBB_HOST) "sudo cp /tmp/controller /tmp/monitor /usr/local/bin/ && sudo systemctl restart growatt-controller.service"
 	@echo "Deploy complete."
 
 .PHONY: create-bbb-image download unpack mount setup-resolv led-service controller-service unmount
