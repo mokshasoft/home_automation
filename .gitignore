@@ -6,4 +6,6 @@ result
 # C controller build artifacts
 app/controller-c/*.o
 app/controller-c/controller
+app/controller-c/monitor
 deploy/controller
+build/
