@@ -191,10 +191,12 @@ deploy-restart:
 	ssh $(BBB_HOST) "sudo systemctl daemon-reload && sudo systemctl restart growatt-controller.service"
 	@echo "Deploy complete."
 
-# Build on BBB directly (if it has build-essential and libmodbus-dev)
+# Build on BBB directly (installs build deps if needed)
 # Usage: make deploy-local BBB_HOST=debian@192.168.7.2
 .PHONY: deploy-local
 deploy-local:
+	@echo "Installing build dependencies on $(BBB_HOST)..."
+	ssh $(BBB_HOST) "sudo apt-get update && sudo apt-get install -y build-essential libmodbus-dev"
 	@echo "Building and deploying on $(BBB_HOST)..."
 	ssh $(BBB_HOST) "mkdir -p /tmp/controller-c"
 	scp app/controller-c/*.c app/controller-c/*.h app/controller-c/Makefile $(BBB_HOST):/tmp/controller-c/
