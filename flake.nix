@@ -19,8 +19,11 @@
       # Native x86 pkgs for dev shell
       x86Pkgs = import nixpkgs { system = "x86_64-linux"; };
 
-      # Source for the controller
+      # Source for the Haskell controller
       controllerSrc = ./app/controller;
+
+      # Source for the C controller
+      controllerCSrc = ./app/controller-c;
 
       # Build the Haskell controller for ARM
       growatt-controller-arm = armPkgs.haskellPackages.callCabal2nix
@@ -34,12 +37,36 @@
         controllerSrc
         {};
 
+      # Build the C controller for ARM
+      controller-c-arm = armPkgs.stdenv.mkDerivation {
+        name = "controller-c";
+        src = controllerCSrc;
+        buildInputs = [ armPkgs.libmodbus ];
+        installPhase = ''
+          mkdir -p $out/bin
+          cp controller monitor $out/bin/
+        '';
+      };
+
+      # Build the C controller for x86 (for testing)
+      controller-c-x86 = x86Pkgs.stdenv.mkDerivation {
+        name = "controller-c";
+        src = controllerCSrc;
+        buildInputs = [ x86Pkgs.libmodbus ];
+        installPhase = ''
+          mkdir -p $out/bin
+          cp controller monitor $out/bin/
+        '';
+      };
+
     in {
       # Packages
       packages.x86_64-linux = {
         growatt-controller = growatt-controller-x86;
         growatt-controller-arm = growatt-controller-arm;
-        default = growatt-controller-x86;
+        controller-c = controller-c-x86;
+        controller-c-arm = controller-c-arm;
+        default = controller-c-x86;
       };
 
       # NixOS configuration for BeagleBone Black
@@ -110,6 +137,8 @@
           stack
           hlint
           fourmolu
+          # C dev tools
+          gcc
           libmodbus
         ];
       };

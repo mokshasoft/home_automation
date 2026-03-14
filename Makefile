@@ -20,7 +20,7 @@ SD_DEV ?= /dev/mmcblk0
 BBB_HOST ?= debian@192.168.7.2
 
 .PHONY: create-bbb-image
-create-bbb-image: download unpack mount setup-resolv led-service controller-service fixup-fstab unmount
+create-bbb-image: download unpack mount setup-resolv led-service controller-service fixup-fstab setup-sudo unmount
 	@echo "Wrote BeagleBone Black image to $(TARGET_IMG)"
 
 # 1. Download Debian ARM image
@@ -103,7 +103,14 @@ fixup-fstab:
 	@echo "Fixing fstab for eMMC boot (mmcblk0 -> mmcblk1)..."
 	sudo sed -i 's/mmcblk0/mmcblk1/g' $(MOUNT_DIR)/etc/fstab
 
-# 8. Unmount filesystem
+# 8. Enable passwordless sudo for debian user
+.PHONY: setup-sudo
+setup-sudo:
+	@echo "Enabling passwordless sudo for debian user..."
+	echo "debian ALL=(ALL) NOPASSWD: ALL" | sudo tee $(MOUNT_DIR)/etc/sudoers.d/debian-nopasswd > /dev/null
+	sudo chmod 440 $(MOUNT_DIR)/etc/sudoers.d/debian-nopasswd
+
+# 9. Unmount filesystem
 .PHONY: unmount
 unmount:
 	sudo umount $(MOUNT_DIR)
@@ -203,4 +210,15 @@ deploy-quick:
 	@echo "Copying pre-built binaries to $(BBB_HOST)..."
 	scp ./build/controller ./build/monitor $(BBB_HOST):/tmp/
 	ssh $(BBB_HOST) "sudo cp /tmp/controller /tmp/monitor /usr/local/bin/ && sudo systemctl restart growatt-controller.service"
+	@echo "Deploy complete."
+
+# Cross-compile with Nix and deploy to BBB (requires passwordless sudo)
+# Usage: make deploy-nix BBB_HOST=debian@192.168.7.2
+.PHONY: deploy-nix
+deploy-nix:
+	@echo "Cross-compiling C controller for ARM with Nix..."
+	nix build .#controller-c-arm
+	@echo "Deploying binaries to $(BBB_HOST)..."
+	cat result/bin/controller | ssh $(BBB_HOST) "sudo tee /usr/local/bin/controller > /dev/null && sudo chmod +x /usr/local/bin/controller"
+	cat result/bin/monitor | ssh $(BBB_HOST) "sudo tee /usr/local/bin/monitor > /dev/null && sudo chmod +x /usr/local/bin/monitor"
 	@echo "Deploy complete."
