@@ -19,7 +19,7 @@ SD_DEV ?= /dev/mmcblk0
 # BeagleBone Black SSH connection (override with: make deploy BBB_HOST=user@host)
 BBB_HOST ?= debian@192.168.7.2
 
-create-bbb-image: download unpack mount setup-resolv led-service controller-service unmount
+create-bbb-image: download unpack mount setup-resolv led-service controller-service fixup-fstab unmount
 	@echo "Wrote BeagleBone Black image to $(TARGET_IMG)"
 
 # 1. Download Debian ARM image
@@ -89,7 +89,13 @@ controller-service:
 	sudo cp deploy/growatt-controller.service $(MOUNT_DIR)/etc/systemd/system/
 	sudo chroot $(MOUNT_DIR) $(QEMU_BIN) /bin/bash -c "systemctl enable growatt-controller.service"
 
-# 7. Unmount filesystem
+# 7. Fix fstab for eMMC boot
+# BBB eMMC is always mmcblk1 (not mmcblk0), even without SD card
+fixup-fstab:
+	@echo "Fixing fstab for eMMC boot (mmcblk0 -> mmcblk1)..."
+	sudo sed -i 's/mmcblk0/mmcblk1/g' $(MOUNT_DIR)/etc/fstab
+
+# 8. Unmount filesystem
 unmount:
 	sudo umount $(MOUNT_DIR)
 
@@ -180,6 +186,6 @@ deploy-quick:
 	ssh $(BBB_HOST) "sudo cp /tmp/controller /tmp/monitor /usr/local/bin/ && sudo systemctl restart growatt-controller.service"
 	@echo "Deploy complete."
 
-.PHONY: create-bbb-image download unpack mount setup-resolv led-service controller-service unmount
+.PHONY: create-bbb-image download unpack mount setup-resolv led-service controller-service fixup-fstab unmount
 .PHONY: chroot-interactive run-qemu flash flash-emmc
 .PHONY: deploy deploy-build deploy-copy deploy-restart deploy-local deploy-quick
