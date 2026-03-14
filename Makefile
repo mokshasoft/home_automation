@@ -19,10 +19,12 @@ SD_DEV ?= /dev/mmcblk0
 # BeagleBone Black SSH connection (override with: make deploy BBB_HOST=user@host)
 BBB_HOST ?= debian@192.168.7.2
 
+.PHONY: create-bbb-image
 create-bbb-image: download unpack mount setup-resolv led-service controller-service fixup-fstab unmount
 	@echo "Wrote BeagleBone Black image to $(TARGET_IMG)"
 
 # 1. Download Debian ARM image
+.PHONY: download
 download:
 	mkdir -p $(DOWNLOAD_DIR)
 	@if [ ! -f $(IMAGE_FILE) ]; then \
@@ -37,11 +39,13 @@ download:
 	fi
 
 # 2. Extract the image
+.PHONY: unpack
 unpack:
 	mkdir -p $(TARGET_IMG_DIR)
 	unxz -c $(IMAGE_FILE) > $(TARGET_IMG)
 
 # 3. Mount root filesystem with loopback
+.PHONY: mount
 mount:
 	sudo mkdir -p $(MOUNT_DIR)
 	# Automatically find rootfs offset
@@ -51,6 +55,7 @@ mount:
 	sudo cp $(QEMU_BIN) $(MOUNT_DIR)/usr/bin/
 
 # 4. Put a working resolv.conf inside the chroot
+.PHONY: setup-resolv
 setup-resolv:
 	# Remove the symlink if it exists
 	sudo rm -f $(MOUNT_DIR)/etc/resolv.conf
@@ -60,6 +65,7 @@ setup-resolv:
 
 
 # 5. Install LED blinker service
+.PHONY: led-service
 led-service:
 	@echo "Copying LED blinker script and service into image..."
 	sudo mkdir -p $(MOUNT_DIR)/opt/bbb
@@ -70,6 +76,7 @@ led-service:
 	sudo chroot $(MOUNT_DIR) $(QEMU_BIN) /bin/bash -c "systemctl enable led-blink.service"
 
 # 6. Install C Controller and Monitor
+.PHONY: controller-service
 controller-service:
 	@echo "Installing C controller and monitor..."
 	# Install build dependencies in the image
@@ -91,17 +98,21 @@ controller-service:
 
 # 7. Fix fstab for eMMC boot
 # BBB eMMC is always mmcblk1 (not mmcblk0), even without SD card
+.PHONY: fixup-fstab
 fixup-fstab:
 	@echo "Fixing fstab for eMMC boot (mmcblk0 -> mmcblk1)..."
 	sudo sed -i 's/mmcblk0/mmcblk1/g' $(MOUNT_DIR)/etc/fstab
 
 # 8. Unmount filesystem
+.PHONY: unmount
 unmount:
 	sudo umount $(MOUNT_DIR)
 
+.PHONY: chroot-interactive
 chroot-interactive:
 	sudo chroot $(MOUNT_DIR) $(QEMU_BIN) /bin/bash
 
+.PHONY: run-qemu
 run-qemu:
 	$(QEMU) \
 		-M versatilepb \
@@ -115,6 +126,7 @@ run-qemu:
 
 # Flash image to SD card
 # Usage: make flash SD_DEV=/dev/sdX
+.PHONY: flash
 flash:
 	@echo "Flashing $(TARGET_IMG) to $(SD_DEV)..."
 	@echo "WARNING: This will overwrite all data on $(SD_DEV)"
@@ -126,6 +138,7 @@ flash:
 # Flash image to BBB eMMC over SSH
 # Usage: make flash-emmc BBB_HOST=debian@192.168.7.2
 # Note: Requires passwordless sudo on BBB (see docs/bbb-setup.md)
+.PHONY: flash-emmc
 flash-emmc:
 	@echo "Flashing $(TARGET_IMG) to eMMC on $(BBB_HOST)..."
 	@echo "WARNING: This will overwrite the eMMC on the BeagleBone Black"
@@ -136,9 +149,11 @@ flash-emmc:
 
 # Deploy binaries to running BBB via SSH (no reboot needed)
 # Usage: make deploy BBB_HOST=root@192.168.7.2
+.PHONY: deploy
 deploy: deploy-build deploy-copy deploy-restart
 
 # Build for ARM inside chroot (reuses mounted image)
+.PHONY: deploy-build
 deploy-build:
 	@echo "Building controller and monitor for ARM..."
 	@if [ ! -d "$(MOUNT_DIR)/tmp" ]; then \
@@ -154,6 +169,7 @@ deploy-build:
 	@echo "Binaries built in ./build/"
 
 # Copy binaries to BBB
+.PHONY: deploy-copy
 deploy-copy:
 	@echo "Copying binaries to $(BBB_HOST)..."
 	scp ./build/controller ./build/monitor $(BBB_HOST):/tmp/
@@ -162,6 +178,7 @@ deploy-copy:
 	ssh $(BBB_HOST) "sudo cp /tmp/growatt-controller.service /etc/systemd/system/"
 
 # Restart service on BBB
+.PHONY: deploy-restart
 deploy-restart:
 	@echo "Restarting controller service on $(BBB_HOST)..."
 	ssh $(BBB_HOST) "sudo systemctl daemon-reload && sudo systemctl restart growatt-controller.service"
@@ -169,6 +186,7 @@ deploy-restart:
 
 # Build on BBB directly (if it has build-essential and libmodbus-dev)
 # Usage: make deploy-local BBB_HOST=debian@192.168.7.2
+.PHONY: deploy-local
 deploy-local:
 	@echo "Building and deploying on $(BBB_HOST)..."
 	ssh $(BBB_HOST) "mkdir -p /tmp/controller-c"
@@ -180,12 +198,9 @@ deploy-local:
 
 # Quick copy of pre-built binaries (if already built for ARM)
 # Usage: make deploy-quick BBB_HOST=debian@192.168.7.2
+.PHONY: deploy-quick
 deploy-quick:
 	@echo "Copying pre-built binaries to $(BBB_HOST)..."
 	scp ./build/controller ./build/monitor $(BBB_HOST):/tmp/
 	ssh $(BBB_HOST) "sudo cp /tmp/controller /tmp/monitor /usr/local/bin/ && sudo systemctl restart growatt-controller.service"
 	@echo "Deploy complete."
-
-.PHONY: create-bbb-image download unpack mount setup-resolv led-service controller-service fixup-fstab unmount
-.PHONY: chroot-interactive run-qemu flash flash-emmc
-.PHONY: deploy deploy-build deploy-copy deploy-restart deploy-local deploy-quick
