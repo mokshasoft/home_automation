@@ -19,23 +19,24 @@ This guide describes how to wire the relay module to the BBB for GPIO control.
 The BeagleBone Black has two 46-pin expansion headers: **P8** and **P9**.
 
 ```
-         USB
-          |
-    +-----+-----+
+      DC Power   Ethernet
+          \       /
+    +-----------+
     |           |
-    |    BBB    |
-    |           |
-   P9          P8
+   P9    BBB   P8
     |           |
     +-----------+
-       Ethernet
+          |
+         USB
 ```
 
 **Pin numbering:** Pin 1 is closest to the Ethernet jack, pin 2 is next to it. Odd pins are on the inner row, even pins on the outer row.
 
 ```
-P8 Header (top view, Ethernet at bottom):
+P8 Header (top view, Ethernet at top):
 
+           Ethernet
+              ↓
           Inner    Outer
           (odd)    (even)
            ┌──┬──┐
@@ -47,13 +48,15 @@ P8 Header (top view, Ethernet at bottom):
            ├──┼──┤
   GPIO66 → │7 │8 │ ← GPIO67
            ├──┼──┤
-  GPIO68 → │9 │10│ ← GPIO69
+  GPIO69 → │9 │10│ ← GPIO68
            ├──┼──┤
            │: │: │
            └──┴──┘
 
-P9 Header (top view, Ethernet at bottom):
+P9 Header (top view, Ethernet at top):
 
+           Ethernet
+              ↓
            ┌──┬──┐
   GND   →  │1 │2 │ ← GND
            ├──┼──┤
@@ -77,8 +80,8 @@ Connect the relay module to the BBB as follows:
 | P9_7 or P9_8 | 5V | VCC |
 | P8_7 | GPIO66 | IN1 |
 | P8_8 | GPIO67 | IN2 |
-| P8_9 | GPIO68 | IN3 |
-| P8_10 | GPIO69 | IN4 |
+| P8_10 | GPIO68 | IN3 |
+| P8_9 | GPIO69 | IN4 |
 
 ```
 BeagleBone Black                4-Channel Relay Module
@@ -92,9 +95,9 @@ BeagleBone Black                4-Channel Relay Module
                                  │                 │
   P8_8  (GPIO67) ───────────────│ IN2     [RLY2]  │
                                  │                 │
-  P8_9  (GPIO68) ───────────────│ IN3     [RLY3]  │
+  P8_10 (GPIO68) ───────────────│ IN3     [RLY3]  │
                                  │                 │
-  P8_10 (GPIO69) ───────────────│ IN4     [RLY4]  │
+  P8_9  (GPIO69) ───────────────│ IN4     [RLY4]  │
                                  └─────────────────┘
 ```
 
