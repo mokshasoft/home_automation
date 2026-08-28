@@ -18,7 +18,11 @@ typedef struct {
     bool is_closed;
 } SwitchHandle;
 
-/* Default GPIO pins (P8_7 through P8_10 on BBB) */
+/*
+ * Default GPIO pins, in ascending GPIO order:
+ *   GPIO48 (P9_15), GPIO49 (P9_23), GPIO112 (P9_30), GPIO115 (P9_27).
+ * See docs/relay-wiring.md for the full pin mapping.
+ */
 extern const Pin DEFAULT_PINS[4];
 extern const int NUM_DEFAULT_PINS;
 
