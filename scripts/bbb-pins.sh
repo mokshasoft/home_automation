@@ -31,6 +31,40 @@ I2C_PINS=(
 hr() { printf '%s\n' "----------------------------------------------------------------"; }
 hdr() { hr; printf '%s\n' "$1"; hr; }
 
+if [ "${1:-}" = "--hold" ]; then
+    # Drive ONE pin HIGH and keep it there, so it can be hunted with a meter.
+    # Usage: bbb-pins.sh --hold <gpio> [seconds]     (default 60s)
+    hold_gpio="${2:-}"
+    hold_secs="${3:-60}"
+    if [ -z "$hold_gpio" ]; then
+        echo "usage: $0 --hold <gpio> [seconds]"
+        echo "relay channels: 48 (P9_15), 49 (P9_23), 112 (P9_30), 115 (P9_27)"
+        exit 1
+    fi
+    label=""
+    for entry in "${PINS[@]}"; do
+        IFS=: read -r g p9 off sig <<< "$entry"
+        [ "$g" = "$hold_gpio" ] && label=" ($p9)"
+    done
+    hdr "HOLDING GPIO${hold_gpio}${label} HIGH for ${hold_secs}s"
+    { echo "$hold_gpio" > /sys/class/gpio/export; } 2>/dev/null
+    sleep 0.3
+    if [ ! -d "/sys/class/gpio/gpio$hold_gpio" ]; then
+        echo "could not export GPIO$hold_gpio"; exit 1
+    fi
+    echo out > "/sys/class/gpio/gpio$hold_gpio/direction"
+    echo 1 > "/sys/class/gpio/gpio$hold_gpio/value"
+    echo "Pin is HIGH. Probe for 3.3V against a GND pin (P9_1, P9_2, P9_43..P9_46)."
+    echo "Every other GPIO on the header stays LOW, so exactly one pin reads 3.3V."
+    echo "Releasing in ${hold_secs}s ..."
+    sleep "$hold_secs"
+    echo 0 > "/sys/class/gpio/gpio$hold_gpio/value"
+    { echo "$hold_gpio" > /sys/class/gpio/unexport; } 2>/dev/null
+    echo "Released; pin is LOW and unexported."
+    exit 0
+fi
+
+
 hdr "1. Board and kernel"
 [ -r /proc/device-tree/model ] && printf 'Model:  %s\n' "$(tr -d '\0' < /proc/device-tree/model)"
 printf 'Kernel: %s\n' "$(uname -r)"
@@ -188,7 +222,8 @@ if [ "${1:-}" = "--toggle" ]; then
     echo "Toggle test done. All pins returned LOW."
 else
     hr
-    echo "Re-run with --toggle to drive each pin HIGH/LOW for multimeter checks:"
-    echo "  sudo bash $0 --toggle"
+    echo "Multimeter helpers:"
+    echo "  sudo bash $0 --toggle              # pulse each relay pin HIGH 3s"
+    echo "  sudo bash $0 --hold <gpio> [secs]  # hold ONE pin HIGH to hunt for it"
     hr
 fi
