@@ -164,12 +164,26 @@ This reads and displays inverter status every 5 seconds.
 
 ### GPIO Pins
 
-Default GPIO pins (BeagleBone Black P8 header):
-- Phase 1: GPIO 66 (P8_7)
-- Phase 2: GPIO 67 (P8_8)
-- Phase 3: GPIO 68 (P8_9)
+Default GPIO pins (BeagleBone Black **P9** header), driven through a
+ULN2803 driver stage:
+
+| Ch | Phase | GPIO | P9 pin | ULN2803 |
+|----|-------|------|--------|---------|
+| 0 | Phase 1 | GPIO 48 | P9_15 | IN1 (pin 1) |
+| 1 | Phase 2 | GPIO 49 | P9_23 | IN2 (pin 2) |
+| 2 | Phase 3 | GPIO 112 | P9_30 | IN3 (pin 3) |
+| 3 | Phase 4 | GPIO 115 | P9_27 | IN4 (pin 4) |
 
 Configure in `Switch.hs` by modifying `defaultPins`.
+
+**Do not use P9_25 (GPIO117).** It is owned by the HDMI audio driver
+(`48038000.mcasp`), and the failure is silent: export succeeds and writes are
+latched, but the pad never moves. See `docs/relay-wiring.md` for the full
+wiring and `scripts/bbb-pins.sh` to verify pins on the board.
+
+> This Haskell controller is superseded by the C implementation in
+> `app/controller-c/`, which is what actually gets deployed. If you change
+> pins here, change `DEFAULT_PINS` in `app/controller-c/switch.c` too.
 
 ### Serial Ports
 

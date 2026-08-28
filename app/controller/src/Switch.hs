@@ -34,9 +34,21 @@ gpioUnexport = "/sys/class/gpio/unexport"
 gpioBase :: FilePath
 gpioBase = "/sys/class/gpio"
 
--- | Default GPIO pins (P8_7 through P8_10 on BBB)
+-- | Default GPIO pins, in ascending GPIO order. On the BBB P9 header:
+--
+--   ch0  GPIO48   P9_15  -> ULN2803 IN1
+--   ch1  GPIO49   P9_23  -> ULN2803 IN2
+--   ch2  GPIO112  P9_30  -> ULN2803 IN3
+--   ch3  GPIO115  P9_27  -> ULN2803 IN4
+--
+-- These must stay in step with DEFAULT_PINS in app/controller-c/switch.c,
+-- which is the version actually deployed. See docs/relay-wiring.md.
+--
+-- P9_25 (GPIO117) is deliberately absent: that pad is owned by the HDMI
+-- audio driver (48038000.mcasp), so sysfs export succeeds and writes are
+-- latched but the pin never moves.
 defaultPins :: [Pin]
-defaultPins = [66, 67, 68, 69]
+defaultPins = [48, 49, 112, 115]
 
 -- | Export a GPIO pin
 exportPin :: Pin -> IO ()
