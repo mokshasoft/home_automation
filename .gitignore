@@ -7,5 +7,6 @@ result
 app/controller-c/*.o
 app/controller-c/controller
 app/controller-c/monitor
+app/controller-c/swrepl
 deploy/controller
 build/

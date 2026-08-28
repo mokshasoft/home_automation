@@ -200,7 +200,7 @@ deploy-local:
 	@echo "Building and deploying on $(BBB_HOST)..."
 	ssh $(BBB_HOST) "mkdir -p /tmp/controller-c"
 	scp app/controller-c/*.c app/controller-c/*.h app/controller-c/Makefile $(BBB_HOST):/tmp/controller-c/
-	ssh $(BBB_HOST) "cd /tmp/controller-c && make clean && make && sudo cp controller monitor /usr/local/bin/ && rm -rf /tmp/controller-c"
+	ssh $(BBB_HOST) "cd /tmp/controller-c && make clean && make && sudo cp controller monitor swrepl /usr/local/bin/ && rm -rf /tmp/controller-c"
 	scp deploy/growatt-controller.service $(BBB_HOST):/tmp/
 	ssh $(BBB_HOST) "sudo cp /tmp/growatt-controller.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl restart growatt-controller.service"
 	@echo "Deploy complete."
