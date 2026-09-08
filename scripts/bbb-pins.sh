@@ -8,6 +8,8 @@
 # Reports facts only; it does not change any configuration.
 # The --toggle option drives each relay GPIO so you can confirm with a
 # multimeter which physical P9 pin actually moves.
+# --hold holds one pin HIGH; --blink pulses one pin so it is easy to spot
+# on a meter while walking the header.
 
 set -u
 
@@ -31,6 +33,19 @@ I2C_PINS=(
 hr() { printf '%s\n' "----------------------------------------------------------------"; }
 hdr() { hr; printf '%s\n' "$1"; hr; }
 
+# Claim a GPIO for sysfs use, mirroring gpio_export() in switch.c.
+# Writing a number to /sys/class/gpio/export that is ALREADY exported fails
+# with an I/O error AND makes the kernel drop the existing export - so the
+# naive "just write it" approach silently takes the pin away instead of
+# claiming it. Only write when the pin is not already there.
+gpio_claim() {
+    if [ ! -d "/sys/class/gpio/gpio$1" ]; then
+        { echo "$1" > /sys/class/gpio/export; } 2>/dev/null
+        sleep 0.3
+    fi
+    [ -d "/sys/class/gpio/gpio$1" ]
+}
+
 if [ "${1:-}" = "--hold" ]; then
     # Drive ONE pin HIGH and keep it there, so it can be hunted with a meter.
     # Usage: bbb-pins.sh --hold <gpio> [seconds]     (default 60s)
@@ -47,9 +62,7 @@ if [ "${1:-}" = "--hold" ]; then
         [ "$g" = "$hold_gpio" ] && label=" ($p9)"
     done
     hdr "HOLDING GPIO${hold_gpio}${label} HIGH for ${hold_secs}s"
-    { echo "$hold_gpio" > /sys/class/gpio/export; } 2>/dev/null
-    sleep 0.3
-    if [ ! -d "/sys/class/gpio/gpio$hold_gpio" ]; then
+    if ! gpio_claim "$hold_gpio"; then
         echo "could not export GPIO$hold_gpio"; exit 1
     fi
     echo out > "/sys/class/gpio/gpio$hold_gpio/direction"
@@ -61,6 +74,53 @@ if [ "${1:-}" = "--hold" ]; then
     echo 0 > "/sys/class/gpio/gpio$hold_gpio/value"
     { echo "$hold_gpio" > /sys/class/gpio/unexport; } 2>/dev/null
     echo "Released; pin is LOW and unexported."
+    exit 0
+fi
+
+
+if [ "${1:-}" = "--blink" ]; then
+    # Blink ONE pin on/off so it can be hunted with a meter in DC volts.
+    # A steady 3.3V can be mistaken for another source; a pin swinging
+    # 0V <-> 3.3V in step with the interval is unmistakable.
+    # Usage: bbb-pins.sh --blink <gpio> [seconds] [half_period]
+    blink_gpio="${2:-}"
+    blink_secs="${3:-120}"
+    blink_half="${4:-1}"
+    if [ -z "$blink_gpio" ]; then
+        echo "usage: $0 --blink <gpio> [seconds] [half_period]"
+        echo "relay channels: 48 (P9_15), 49 (P9_23), 112 (P9_30), 115 (P9_27)"
+        exit 1
+    fi
+    label=""
+    for entry in "${PINS[@]}"; do
+        IFS=: read -r g p9 off sig <<< "$entry"
+        [ "$g" = "$blink_gpio" ] && label=" ($p9)"
+    done
+    if ! gpio_claim "$blink_gpio"; then
+        echo "could not export GPIO$blink_gpio"; exit 1
+    fi
+    # Always leave the pin LOW and released - even on Ctrl-C or a dropped ssh.
+    # A GPIO left HIGH holds a relay energised.
+    cleanup_blink() {
+        echo 0 > "/sys/class/gpio/gpio$blink_gpio/value" 2>/dev/null
+        { echo "$blink_gpio" > /sys/class/gpio/unexport; } 2>/dev/null
+        echo
+        echo "Released; GPIO$blink_gpio is LOW and unexported."
+    }
+    trap cleanup_blink EXIT INT TERM
+    echo out > "/sys/class/gpio/gpio$blink_gpio/direction"
+    hdr "BLINKING GPIO${blink_gpio}${label} for ${blink_secs}s (${blink_half}s on / ${blink_half}s off)"
+    echo "Meter in DC volts, black probe on P9_1 (or P9_43..P9_46)."
+    echo "Walk the red probe along P9 until one hole swings 0V <-> 3.3V."
+    echo "Every other GPIO stays LOW, so exactly one pin blinks."
+    echo
+    deadline=$(( SECONDS + blink_secs ))
+    while [ "$SECONDS" -lt "$deadline" ]; do
+        echo 1 > "/sys/class/gpio/gpio$blink_gpio/value"
+        sleep "$blink_half"
+        echo 0 > "/sys/class/gpio/gpio$blink_gpio/value"
+        sleep "$blink_half"
+    done
     exit 0
 fi
 
@@ -203,9 +263,7 @@ if [ "${1:-}" = "--toggle" ]; then
     echo
     for entry in "${PINS[@]}"; do
         IFS=: read -r gpio p9 off sig <<< "$entry"
-        { echo "$gpio" > /sys/class/gpio/export; } 2>/dev/null
-        sleep 0.2
-        if [ ! -d "/sys/class/gpio/gpio$gpio" ]; then
+        if ! gpio_claim "$gpio"; then
             echo "$p9 GPIO$gpio: cannot export, skipping"
             continue
         fi
@@ -225,5 +283,6 @@ else
     echo "Multimeter helpers:"
     echo "  sudo bash $0 --toggle              # pulse each relay pin HIGH 3s"
     echo "  sudo bash $0 --hold <gpio> [secs]  # hold ONE pin HIGH to hunt for it"
+    echo "  sudo bash $0 --blink <gpio> [secs] [half]  # blink ONE pin to hunt for it"
     hr
 fi
